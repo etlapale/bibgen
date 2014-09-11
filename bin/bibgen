@@ -1,0 +1,113 @@
+#! /usr/bin/env python3
+# bibgen.py — Bibliography generator for DocBook documents
+#
+# Copyright © 2014  Émilien Tlapale
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import os.path
+import pathlib
+import sys
+import xml.dom.minidom
+
+import citeproc
+import citeproc.formatter
+
+from bibgen.citeproc import CiteProcMendeley
+import bibgen.formatter
+
+
+description = 'Generate a bibliography for DocBook with Mendeley'
+docbook_ns = 'http://docbook.org/ns/docbook'
+
+def default_sqlite_database():
+    d = os.path.expanduser('~/.local/share/data/Mendeley Ltd./Mendeley Desktop')
+    for path in pathlib.Path(d).glob('*@www.mendeley.com.sqlite'):
+        return str(path)
+    return None
+
+if __name__ == '__main__':
+    # Command line arguments
+    ap = argparse.ArgumentParser(description=description)
+    ap.add_argument('document', metavar='DBDOC.XML', nargs=1,
+                    help='input DocBook document')
+    ap.add_argument('-d', '--database', default=default_sqlite_database(),
+                    help='sqlite database containing the entries')
+    ap.add_argument('-n', '--no-sort', dest='sort_order', action='store_const',
+                    const='nosort', default='alpha',
+                    help='do not sort the entries')
+    ap.add_argument('-o', '--output', default=None,
+                    help='generated DocBook bibliography')
+    ap.add_argument('-s', '--style', metavar='STYLE.CSL', default='harvard1',
+                    help='path or name of citation style')
+    args = ap.parse_args()
+
+    # Open the DocBook document
+    dom = xml.dom.minidom.parse(args.document[0])
+    # Search for all citations
+    cit_nodes = dom.getElementsByTagNameNS(docbook_ns, 'citation')
+    # Convert the citations to citation keys
+    cit_keys = [n.childNodes[0].data for n in cit_nodes
+                if len(n.childNodes) == 1
+                   and n.childNodes[0].nodeType == n.TEXT_NODE]
+    # Sort the citations if required
+    if args.sort_order == 'alpha':
+        cit_keys.sort()
+
+    # Setup a citeproc context
+    # TODO: add trivial support for bibtex
+    bib_style = citeproc.CitationStylesStyle(args.style)
+    bib_src = CiteProcMendeley(args.database)
+    biblio = citeproc.CitationStylesBibliography(bib_style,
+                                                 bib_src, bibgen.formatter)
+
+    # Create the citations
+    #cit_done = set()
+    cits = []
+    for key in cit_keys:
+        cit = citeproc.Citation([citeproc.CitationItem(key)])
+        biblio.register(cit)
+        cits.append(cit)
+
+    def warn(cit_item):
+        print('warning: citation reference not found for', cit_item.key)
+
+    # Print the citations
+    for cit in cits:
+        print(biblio.cite(cit, warn))
+
+    # Fill the existing bibliography node
+    # TODO: add support for per-section bibliographies
+    bib_nodes = dom.getElementsByTagNameNS(docbook_ns, 'bibliography')
+    for bib_node in bib_nodes:
+        # Only keep the bibliography title
+        # TODO: specify which nodes to keep
+        for node in bib_node.childNodes:
+            if node.nodeType == node.ELEMENT_NODE:
+                if node.tagName != 'title':
+                    bib_node.removeChild(node)
+        # Add the bibliography entries
+        # TODO add support for raw entries
+        for bibitem in biblio.bibliography():
+            itemdom = xml.dom.minidom.parseString('<bibliomixed>%s</bibliomixed>'%str(bibitem))
+            bib_node.appendChild(itemdom.documentElement)
+        # Only process one bibliography element
+        break
+
+    # Write the new DocBook document
+    if args.output is None:
+        out = sys.stdout
+    else:
+        out = open(args.output, 'w')
+    dom.writexml(out)
