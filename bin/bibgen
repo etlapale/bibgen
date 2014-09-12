@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-# bibgen.py — Bibliography generator for DocBook documents
+# bibgen.py — Bibliography generator for XML documents
 #
 # Copyright © 2014  Émilien Tlapale
 #
@@ -28,14 +28,20 @@ from bibgen.citeproc import CiteProcMendeley
 import bibgen.formatter
 
 
-description = 'Generate a bibliography for DocBook with Mendeley'
+# TODO: Add support for DITA
+description = 'Bibliography generator for XML documents'
 docbook_ns = 'http://docbook.org/ns/docbook'
 
+
 def default_sqlite_database():
+    '''
+    Search for a default Mendeley sqlite database.
+    '''
     d = os.path.expanduser('~/.local/share/data/Mendeley Ltd./Mendeley Desktop')
     for path in pathlib.Path(d).glob('*@www.mendeley.com.sqlite'):
         return str(path)
     return None
+
 
 if __name__ == '__main__':
     # Command line arguments
@@ -55,15 +61,14 @@ if __name__ == '__main__':
 
     # Open the DocBook document
     dom = xml.dom.minidom.parse(args.document[0])
-    # Search for all citations
-    cit_nodes = dom.getElementsByTagNameNS(docbook_ns, 'citation')
-    # Convert the citations to citation keys
-    cit_keys = [n.childNodes[0].data for n in cit_nodes
-                if len(n.childNodes) == 1
-                   and n.childNodes[0].nodeType == n.TEXT_NODE]
+    # Search all citations and their keys
+    cit_nodes = [(n.childNodes[0].data.lower(),n) for n
+                 in dom.getElementsByTagNameNS(docbook_ns, 'citation') 
+                 if len(n.childNodes) == 1
+                    and n.childNodes[0].nodeType == n.TEXT_NODE]
     # Sort the citations if required
     if args.sort_order == 'alpha':
-        cit_keys.sort()
+        cit_nodes.sort(key=lambda x: x[0])
 
     # Setup a citeproc context
     # TODO: add trivial support for bibtex
@@ -73,9 +78,8 @@ if __name__ == '__main__':
                                                  bib_src, bibgen.formatter)
 
     # Create the citations
-    #cit_done = set()
     cits = []
-    for key in cit_keys:
+    for (key,n) in cit_nodes:
         cit = citeproc.Citation([citeproc.CitationItem(key)])
         biblio.register(cit)
         cits.append(cit)
@@ -84,8 +88,14 @@ if __name__ == '__main__':
         print('warning: citation reference not found for', cit_item.key)
 
     # Print the citations
-    for cit in cits:
-        print(biblio.cite(cit, warn))
+    for ((key,n),cit) in zip(cit_nodes,cits):
+        txt = biblio.cite(cit,warn)
+        print(txt)
+        childdom = xml.dom.minidom.parseString('<link linkend="bib-%s">%s</link>'%(key,str(txt)))
+        #child = dom.createElementNS(docbook_ns, 'link')
+        #child.setAttributeNS(docbook_ns, 'linkend', 'bib-'+key)
+        #child.appendChild(dom.createTextNode(str(biblio.cite(cit, warn))))
+        n.replaceChild(childdom.documentElement, n.childNodes[0])
 
     # Fill the existing bibliography node
     # TODO: add support for per-section bibliographies
@@ -99,8 +109,8 @@ if __name__ == '__main__':
                     bib_node.removeChild(node)
         # Add the bibliography entries
         # TODO add support for raw entries
-        for bibitem in biblio.bibliography():
-            itemdom = xml.dom.minidom.parseString('<bibliomixed>%s</bibliomixed>'%str(bibitem))
+        for (itm,bibitem) in zip(biblio.items,biblio.bibliography()):
+            itemdom = xml.dom.minidom.parseString('<bibliomixed xml:id="bib-%s">%s</bibliomixed>'%(itm.key,str(bibitem)))
             bib_node.appendChild(itemdom.documentElement)
         # Only process one bibliography element
         break
