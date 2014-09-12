@@ -51,6 +51,11 @@ class CiteProcMendeley(citeproc.source.BibliographySource):
                     'author': []
                    }
 
+            # Other metadata
+            for key in ['issue', 'volume']:
+                if doc[key] is not None:
+                    meta[key] = doc[key]
+
             # Fetch authors
             curs.execute('SELECT firstNames,lastName FROM DocumentContributors WHERE documentId=? AND contribution="DocumentAuthor"', (doc['id'],))
             authors = curs.fetchall()
