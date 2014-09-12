@@ -46,7 +46,7 @@ class CiteProcMendeley(citeproc.source.BibliographySource):
 
             # Create document metadata
             meta = {'container_title': doc['publication'],
-                    'date': citeproc.source.Date(**date),
+                    'issued': citeproc.source.Date(**date),
                     'title': doc['title'],
                     'author': []
                    }
