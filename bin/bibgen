@@ -59,18 +59,17 @@ if __name__ == '__main__':
                     help='prefix for bibliography links')
     ap.add_argument('-s', '--style', metavar='STYLE.CSL', default='harvard1',
                     help='path or name of citation style')
+    ap.add_argument('-t', '--citation-separator', dest='cit_sep', default=';',
+                    help='citation separator for multi-citing')
     args = ap.parse_args()
 
     # Open the DocBook document
     dom = xml.dom.minidom.parse(args.document[0])
     # Search all citations and their keys
-    cit_nodes = [(n.childNodes[0].data.lower(),n) for n
+    cit_nodes = [(n.childNodes[0].data.lower().split(args.cit_sep),n) for n
                  in dom.getElementsByTagNameNS(docbook_ns, 'citation') 
                  if len(n.childNodes) == 1
                     and n.childNodes[0].nodeType == n.TEXT_NODE]
-    # Sort the citations if required
-    #if args.sort_order == 'alpha':
-    #    cit_nodes.sort(key=lambda x: x[0])
 
     # Setup a citeproc context
     # TODO: add trivial support for bibtex
@@ -81,8 +80,8 @@ if __name__ == '__main__':
 
     # Create the citations
     cits = []
-    for (key,n) in cit_nodes:
-        cit = citeproc.Citation([citeproc.CitationItem(key)])
+    for (keys,n) in cit_nodes:
+        cit = citeproc.Citation([citeproc.CitationItem(key) for key in keys])
         biblio.register(cit)
         cits.append(cit)
 
@@ -90,9 +89,11 @@ if __name__ == '__main__':
         print('warning: citation reference not found for', cit_item.key)
 
     # Print the citations
-    for ((key,n),cit) in zip(cit_nodes,cits):
+    for ((keys,n),cit) in zip(cit_nodes,cits):
         txt = biblio.cite(cit,warn)
         print(txt)
+        # TODO: multiple links for multi-citing
+        key = keys[0]
         childdom = xml.dom.minidom.parseString('<link linkend="%s%s">%s</link>'%(args.link_prefix,key,str(txt)))
         #child = dom.createElementNS(docbook_ns, 'link')
         #child.setAttributeNS(docbook_ns, 'linkend', 'bib-'+key)
@@ -101,8 +102,7 @@ if __name__ == '__main__':
 
     # Fill the existing bibliography node
     # TODO: add support for per-section bibliographies
-    bib_nodes = dom.getElementsByTagNameNS(docbook_ns, 'bibliography')
-    for bib_node in bib_nodes:
+    for bib_node in dom.getElementsByTagNameNS(docbook_ns, 'bibliography'):
         # Only keep the bibliography title
         # TODO: specify which nodes to keep
         for node in bib_node.childNodes:
@@ -110,8 +110,11 @@ if __name__ == '__main__':
                 if node.tagName != 'title':
                     bib_node.removeChild(node)
         # Add the bibliography entries
+        bib_entries = list(zip(biblio.items,biblio.bibliography()))
+        if args.sort_order == 'alpha':
+            bib_entries.sort(key=lambda x: x[0].key)
         # TODO add support for raw entries
-        for (itm,bibitem) in zip(biblio.items,biblio.bibliography()):
+        for (itm,bibitem) in bib_entries:
             itemdom = xml.dom.minidom.parseString('<bibliomixed xml:id="%s%s">%s</bibliomixed>'%(args.link_prefix,itm.key,str(bibitem)))
             bib_node.appendChild(itemdom.documentElement)
         # Only process one bibliography element
