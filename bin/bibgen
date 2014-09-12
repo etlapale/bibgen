@@ -55,6 +55,8 @@ if __name__ == '__main__':
                     help='do not sort the entries')
     ap.add_argument('-o', '--output', default=None,
                     help='generated DocBook bibliography')
+    ap.add_argument('-p', '--link-prefix', dest='link_prefix', default='bib-',
+                    help='prefix for bibliography links')
     ap.add_argument('-s', '--style', metavar='STYLE.CSL', default='harvard1',
                     help='path or name of citation style')
     args = ap.parse_args()
@@ -67,8 +69,8 @@ if __name__ == '__main__':
                  if len(n.childNodes) == 1
                     and n.childNodes[0].nodeType == n.TEXT_NODE]
     # Sort the citations if required
-    if args.sort_order == 'alpha':
-        cit_nodes.sort(key=lambda x: x[0])
+    #if args.sort_order == 'alpha':
+    #    cit_nodes.sort(key=lambda x: x[0])
 
     # Setup a citeproc context
     # TODO: add trivial support for bibtex
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     for ((key,n),cit) in zip(cit_nodes,cits):
         txt = biblio.cite(cit,warn)
         print(txt)
-        childdom = xml.dom.minidom.parseString('<link linkend="bib-%s">%s</link>'%(key,str(txt)))
+        childdom = xml.dom.minidom.parseString('<link linkend="%s%s">%s</link>'%(args.link_prefix,key,str(txt)))
         #child = dom.createElementNS(docbook_ns, 'link')
         #child.setAttributeNS(docbook_ns, 'linkend', 'bib-'+key)
         #child.appendChild(dom.createTextNode(str(biblio.cite(cit, warn))))
@@ -110,7 +112,7 @@ if __name__ == '__main__':
         # Add the bibliography entries
         # TODO add support for raw entries
         for (itm,bibitem) in zip(biblio.items,biblio.bibliography()):
-            itemdom = xml.dom.minidom.parseString('<bibliomixed xml:id="bib-%s">%s</bibliomixed>'%(itm.key,str(bibitem)))
+            itemdom = xml.dom.minidom.parseString('<bibliomixed xml:id="%s%s">%s</bibliomixed>'%(args.link_prefix,itm.key,str(bibitem)))
             bib_node.appendChild(itemdom.documentElement)
         # Only process one bibliography element
         break
