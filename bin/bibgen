@@ -91,7 +91,6 @@ if __name__ == '__main__':
     # Print the citations
     for ((keys,n),cit) in zip(cit_nodes,cits):
         txt = biblio.cite(cit,warn)
-        print(txt)
         # TODO: multiple links for multi-citing
         key = keys[0]
         childdom = xml.dom.minidom.parseString('<link linkend="%s%s">%s</link>'%(args.link_prefix,key,str(txt)))
