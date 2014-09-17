@@ -29,6 +29,10 @@ class CiteProcMendeley(citeproc.source.BibliographySource):
         curs.execute('SELECT id,citationKey,type,publication,year,month,volume,issue,pages,title FROM Documents')
         docs = curs.fetchall()
         for doc in docs:
+            # Check for a citation key
+            if doc['citationKey'] is None:
+                continue
+
             # Check type
             type = parse_type(doc['type'])
             if type is None:

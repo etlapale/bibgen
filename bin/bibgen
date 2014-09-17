@@ -81,23 +81,32 @@ if __name__ == '__main__':
     # Create the citations
     cits = []
     for (keys,n) in cit_nodes:
-        cit = citeproc.Citation([citeproc.CitationItem(key) for key in keys])
+        def mkitem(key):
+            return citeproc.CitationItem(key,
+                     prefix='<link linkend="%s%s">'%(args.link_prefix,key),
+                     suffix='</link>')
+        cit = citeproc.Citation([mkitem(key) for key in keys])
         biblio.register(cit)
         cits.append(cit)
 
+    # Print the citations
     def warn(cit_item):
         print('warning: citation reference not found for', cit_item.key)
-
-    # Print the citations
     for ((keys,n),cit) in zip(cit_nodes,cits):
-        txt = biblio.cite(cit,warn)
-        # TODO: multiple links for multi-citing
-        key = keys[0]
-        childdom = xml.dom.minidom.parseString('<link linkend="%s%s">%s</link>'%(args.link_prefix,key,str(txt)))
-        #child = dom.createElementNS(docbook_ns, 'link')
-        #child.setAttributeNS(docbook_ns, 'linkend', 'bib-'+key)
-        #child.appendChild(dom.createTextNode(str(biblio.cite(cit, warn))))
-        n.replaceChild(childdom.documentElement, n.childNodes[0])
+        txt = str(biblio.cite(cit,warn))
+        print(txt)
+        cit_dom = xml.dom.minidom.parseString('<para>%s</para>'%txt)
+        # Remove all previous <citation/> children
+        for node in n.childNodes:
+            n.removeChild(node)
+        print(cit_dom.toxml())
+        # Add the new children
+        cit_root = cit_dom.documentElement
+        while cit_root.hasChildNodes():
+            n.appendChild(cit_root.firstChild)
+        #for node in cit_dom.documentElement.childNodes:
+            #print(' ++', node)
+            #n.appendChild(node)
 
     # Fill the existing bibliography node
     # TODO: add support for per-section bibliographies
