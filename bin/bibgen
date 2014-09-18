@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import argparse
+import codecs
 import os.path
 import pathlib
 import sys
@@ -33,7 +34,7 @@ description = 'Bibliography generator for XML documents'
 docbook_ns = 'http://docbook.org/ns/docbook'
 
 
-def default_sqlite_database():
+def default_mendeley_database():
     '''
     Search for a default Mendeley sqlite database.
     '''
@@ -42,14 +43,28 @@ def default_sqlite_database():
         return str(path)
     return None
 
+def default_bibtex_database(doc):
+    for d in [os.path.dirname(doc)]:
+        for path in pathlib.Path(d).glob('*.bib'):
+            return str(path)
+    return None
 
 if __name__ == '__main__':
     # Command line arguments
     ap = argparse.ArgumentParser(description=description)
     ap.add_argument('document', metavar='DBDOC.XML', nargs=1,
                     help='input DocBook document')
-    ap.add_argument('-d', '--database', default=default_sqlite_database(),
-                    help='sqlite database containing the entries')
+    ap.add_argument('biblio', metavar='BIBLIO', nargs='?', default=None,
+                    help='bibliography database')
+    ap.add_argument('-e', '--encoding', dest='db_encoding',
+                    default='utf-8',
+                    help='encoding of the bibliography database')
+    ap.add_argument('-j', '--json', dest='db_type', action='store_const',
+                    const='json', default='bibtex',
+                    help='JSON bibliography database')
+    ap.add_argument('-m', '--mendeley', dest='db_type', action='store_const',
+                    const='mendeley', default='bibtex',
+                    help='Mendeley bibliography database')
     ap.add_argument('-n', '--no-sort', dest='sort_order', action='store_const',
                     const='nosort', default='alpha',
                     help='do not sort the entries')
@@ -63,6 +78,14 @@ if __name__ == '__main__':
                     help='citation separator for multi-citing')
     args = ap.parse_args()
 
+    # Search for the database
+    if args.db_type == 'mendeley' and args.biblio is None:
+        args.biblio = default_mendeley_database()
+    elif args.db_type == 'bibtex' and args.biblio is None:
+        args.biblio = default_bibtex_database(args.document[0])
+    if args.biblio is None:
+        exit('error: cannot find a bibliography database')
+
     # Open the DocBook document
     dom = xml.dom.minidom.parse(args.document[0])
     # Search all citations and their keys
@@ -72,9 +95,15 @@ if __name__ == '__main__':
                     and n.childNodes[0].nodeType == n.TEXT_NODE]
 
     # Setup a citeproc context
-    # TODO: add trivial support for bibtex
     bib_style = citeproc.CitationStylesStyle(args.style)
-    bib_src = CiteProcMendeley(args.database)
+    if args.db_type == 'mendeley':
+        bib_src = CiteProcMendeley(args.biblio)
+    elif args.db_type == 'json':
+        json_data = json.load(open(args.biblio))
+        bib_src = citeproc.source.json.CiteProcJSON(json_data)
+    else:
+        fp = codecs.open(args.biblio, 'r', args.db_encoding)
+        bib_src = citeproc.source.bibtex.BibTeX(fp)
     biblio = citeproc.CitationStylesBibliography(bib_style,
                                                  bib_src, bibgen.formatter)
 
@@ -94,19 +123,14 @@ if __name__ == '__main__':
         print('warning: citation reference not found for', cit_item.key)
     for ((keys,n),cit) in zip(cit_nodes,cits):
         txt = str(biblio.cite(cit,warn))
-        print(txt)
         cit_dom = xml.dom.minidom.parseString('<para>%s</para>'%txt)
         # Remove all previous <citation/> children
         for node in n.childNodes:
             n.removeChild(node)
-        print(cit_dom.toxml())
         # Add the new children
         cit_root = cit_dom.documentElement
         while cit_root.hasChildNodes():
             n.appendChild(cit_root.firstChild)
-        #for node in cit_dom.documentElement.childNodes:
-            #print(' ++', node)
-            #n.appendChild(node)
 
     # Fill the existing bibliography node
     # TODO: add support for per-section bibliographies
