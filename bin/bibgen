@@ -16,38 +16,12 @@
 # limitations under the License.
 
 import argparse
-import codecs
-import os.path
-import pathlib
 import sys
 import xml.dom.minidom
 
-import citeproc
-import citeproc.formatter
+import bibgen
 
-from bibgen.citeproc import CiteProcMendeley
-import bibgen.formatter
-
-
-# TODO: Add support for DITA
 description = 'Bibliography generator for XML documents'
-docbook_ns = 'http://docbook.org/ns/docbook'
-
-
-def default_mendeley_database():
-    '''
-    Search for a default Mendeley sqlite database.
-    '''
-    d = os.path.expanduser('~/.local/share/data/Mendeley Ltd./Mendeley Desktop')
-    for path in pathlib.Path(d).glob('*@www.mendeley.com.sqlite'):
-        return str(path)
-    return None
-
-def default_bibtex_database(doc):
-    for d in [os.path.dirname(doc)]:
-        for path in pathlib.Path(d).glob('*.bib'):
-            return str(path)
-    return None
 
 if __name__ == '__main__':
     # Command line arguments
@@ -80,77 +54,19 @@ if __name__ == '__main__':
 
     # Search for the database
     if args.db_type == 'mendeley' and args.biblio is None:
-        args.biblio = default_mendeley_database()
+        args.biblio = bibgen.default_mendeley_database()
     elif args.db_type == 'bibtex' and args.biblio is None:
-        args.biblio = default_bibtex_database(args.document[0])
+        args.biblio = bibgen.default_bibtex_database(args.document[0])
     if args.biblio is None:
         exit('error: cannot find a bibliography database')
 
     # Open the DocBook document
     dom = xml.dom.minidom.parse(args.document[0])
-    # Search all citations and their keys
-    cit_nodes = [(n.childNodes[0].data.lower().split(args.cit_sep),n) for n
-                 in dom.getElementsByTagNameNS(docbook_ns, 'citation') 
-                 if len(n.childNodes) == 1
-                    and n.childNodes[0].nodeType == n.TEXT_NODE]
 
-    # Setup a citeproc context
-    bib_style = citeproc.CitationStylesStyle(args.style)
-    if args.db_type == 'mendeley':
-        bib_src = CiteProcMendeley(args.biblio)
-    elif args.db_type == 'json':
-        json_data = json.load(open(args.biblio))
-        bib_src = citeproc.source.json.CiteProcJSON(json_data)
-    else:
-        fp = codecs.open(args.biblio, 'r', args.db_encoding)
-        bib_src = citeproc.source.bibtex.BibTeX(fp)
-    biblio = citeproc.CitationStylesBibliography(bib_style,
-                                                 bib_src, bibgen.formatter)
-
-    # Create the citations
-    cits = []
-    for (keys,n) in cit_nodes:
-        def mkitem(key):
-            return citeproc.CitationItem(key,
-                     prefix='<link linkend="%s%s">'%(args.link_prefix,key),
-                     suffix='</link>')
-        cit = citeproc.Citation([mkitem(key) for key in keys])
-        biblio.register(cit)
-        cits.append(cit)
-
-    # Print the citations
-    def warn(cit_item):
-        print('warning: citation reference not found for', cit_item.key)
-    for ((keys,n),cit) in zip(cit_nodes,cits):
-        txt = str(biblio.cite(cit,warn))
-        cit_dom = xml.dom.minidom.parseString('<para>%s</para>'%txt)
-        # Remove all previous <citation/> children
-        for node in n.childNodes:
-            n.removeChild(node)
-        # Add the new children
-        cit_root = cit_dom.documentElement
-        while cit_root.hasChildNodes():
-            n.appendChild(cit_root.firstChild)
-
-    # Fill the existing bibliography node
-    # TODO: add support for per-section bibliographies
-    for bib_node in dom.getElementsByTagNameNS(docbook_ns, 'bibliography'):
-        # Only keep the bibliography title
-        # TODO: specify which nodes to keep
-        for node in bib_node.childNodes:
-            if node.nodeType == node.ELEMENT_NODE:
-                if node.tagName != 'title':
-                    bib_node.removeChild(node)
-        # Add the bibliography entries
-        bib_entries = list(zip(biblio.items,biblio.bibliography()))
-        if args.sort_order == 'alpha':
-            bib_entries.sort(key=lambda x: x[0].key)
-        # TODO add support for raw entries
-        for (itm,bibitem) in bib_entries:
-            itemdom = xml.dom.minidom.parseString('<bibliomixed xml:id="%s%s">%s</bibliomixed>'%(args.link_prefix,itm.key,str(bibitem)))
-            bib_node.appendChild(itemdom.documentElement)
-        # Only process one bibliography element
-        break
+    # Render citations and fill the bibliography
+    bibgen.process_dom(dom, args.db_type, args.biblio, args.db_encoding,
+                       args.cit_sep, args.sort_order,
+                       args.link_prefix, args.style)
 
     # Write the new DocBook document
     if args.output is None:
