@@ -1,3 +1,6 @@
 *~
 __pycache__
 bibgen-*.tar.xz
+build
+dist
+*.egg-info
