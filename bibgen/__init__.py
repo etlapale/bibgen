@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import codecs
 import os
 import os.path
 import pathlib
@@ -20,10 +21,8 @@ import xml.dom.minidom
 import citeproc as cp
 import citeproc.formatter
 
-from bibgen.citeproc import CiteProcMendeley
 import bibgen.formatter
 
-# TODO: Add support for DITA
 docbook_ns = 'http://docbook.org/ns/docbook'
 
 
@@ -58,7 +57,7 @@ def default_bibtex_database(doc):
     return None
 
 
-def process_dom(dom, db_type='mendeley', db=None, db_path='utf-8',
+def process_dom(dom, db_type='mendeley', db=None, db_encoding='utf-8',
                 citation_separator=';', sort_order='alpha',
                 style='harvard1',
                 link_format=lambda x: x.lower()):
@@ -86,11 +85,12 @@ def process_dom(dom, db_type='mendeley', db=None, db_path='utf-8',
     # Setup a citeproc context
     bib_style = cp.CitationStylesStyle(style)
     if db_type == 'mendeley':
+        from bibgen.citeproc.mendeley import CiteProcMendeley
         bib_src = CiteProcMendeley(db)
     elif db_type == 'json':
         json_data = json.load(open(db))
         bib_src = citeproc.source.json.CiteProcJSON(json_data)
-    else:
+    else:  # Default to BibTeX
         fp = codecs.open(db, 'r', db_encoding)
         bib_src = citeproc.source.bibtex.BibTeX(fp)
     biblio = cp.CitationStylesBibliography(bib_style,
