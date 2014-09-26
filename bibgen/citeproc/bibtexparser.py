@@ -21,6 +21,7 @@ class CiteProcBibTeX(cbt.BibTeX):
             bent = cbp.BibTeXEntry(entry['type'], entry)
             self.add(self.create_reference(entry['id'].lower(), bent))
 
+    # This functions is copy/pasted/modified from citeproc-py
     def _bibtex_to_csl(self, bibtex_entry):
         csl_dict = {}
         for field, value in bibtex_entry.items():

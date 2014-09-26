@@ -90,9 +90,19 @@ def process_dom(dom, db_type='mendeley', db=None, db_encoding='utf-8',
     elif db_type == 'json':
         json_data = json.load(open(db))
         bib_src = citeproc.source.json.CiteProcJSON(json_data)
-    else:  # Default to BibTeX
-        fp = codecs.open(db, 'r', db_encoding)
-        bib_src = citeproc.source.bibtex.BibTeX(fp)
+    # Default to BibTex
+    else: 
+        # Check for bibtexparser
+        try:
+            import bibtexparser
+            with codecs.open(db, 'r', db_encoding) as fp:
+                from bibgen.citeproc.bibtexparser import CiteProcBibTeX
+                bib_src = CiteProcBibTeX(fp)
+        # Use minimalistic bibtex parser from citeproc-py
+        except ImportError:
+            print('warning: defaulting to citeproc-py’s bibtex parser, you may want to install bibtexparser')
+            with codecs.open(db, 'r', db_encoding) as fp:
+                bib_src = citeproc.source.bibtex.BibTeX(fp)
     biblio = cp.CitationStylesBibliography(bib_style,
                                            bib_src, bibgen.formatter)
 
