@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import os.path
 import pathlib
 import xml.dom.minidom
@@ -30,9 +31,24 @@ def default_mendeley_database():
     '''
     Search for a default Mendeley sqlite database.
     '''
-    d = os.path.expanduser('~/.local/share/data/Mendeley Ltd./Mendeley Desktop')
-    for path in pathlib.Path(d).glob('*@www.mendeley.com.sqlite'):
-        return str(path)
+    # Linux
+    dirs = [os.path.expanduser('~/.local/share/data/Mendeley Ltd./Mendeley Desktop')]
+    # Windows Vista/7 (untested)
+    if 'LOCALAPPDATA' in os.environ:
+        dirs.append(os.path.join(os.environ('LOCALAPPDATA'),
+                                 'Mendeley Ltd.', 'Mendeley Desktop'))
+    # Windows XP (untested)
+    dirs.append(os.path.join(os.path.expanduser('~'),
+                             'Local Settings', 'Application Data',
+                             'Mendeley Ltd.', 'Mendeley Desktop'))
+    # MacOS X
+    dirs.append(os.path.join(os.path.expanduser('~'),
+                             'Library', 'Application Support',
+                             'Mendeley Desktop'))
+    
+    for d in dirs:
+      for path in pathlib.Path(d).glob('*@www.mendeley.com.sqlite'):
+          return str(path)
     return None
 
 def default_bibtex_database(doc):
@@ -44,7 +60,8 @@ def default_bibtex_database(doc):
 
 def process_dom(dom, db_type='mendeley', db=None, db_path='utf-8',
                 citation_separator=';', sort_order='alpha',
-                link_prefix='bib-', style='harvard1'):
+                style='harvard1',
+                link_format=lambda x: x.lower()):
     '''
     mendeley, json and bibtex bibliography database are supported.
     
@@ -84,7 +101,7 @@ def process_dom(dom, db_type='mendeley', db=None, db_path='utf-8',
     for (keys,n) in cit_nodes:
         def mkitem(key):
             return cp.CitationItem(key,
-                     prefix='<link linkend="%s%s">'%(link_prefix,key),
+                     prefix='<link linkend="%s">'%(link_format(key)),
                      suffix='</link>')
         cit = cp.Citation([mkitem(key) for key in keys])
         biblio.register(cit)
@@ -119,7 +136,7 @@ def process_dom(dom, db_type='mendeley', db=None, db_path='utf-8',
             bib_entries.sort(key=lambda x: x[0].key)
         # TODO add support for raw entries
         for (itm,bibitem) in bib_entries:
-            itemdom = xml.dom.minidom.parseString('<bibliomixed xml:id="%s%s">%s</bibliomixed>'%(link_prefix,itm.key,str(bibitem)))
+            itemdom = xml.dom.minidom.parseString('<bibliomixed xml:id="%s">%s</bibliomixed>'%(link_format(itm.key),str(bibitem)))
             bib_node.appendChild(itemdom.documentElement)
         # Only process one bibliography element
         break
