@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import argparse
+import codecs
 import pathlib
 import sys
 import xml.dom.minidom
@@ -92,19 +93,26 @@ if __name__ == '__main__':
     if args.output is None:
         out = sys.stdout
     else:
-        out = open(args.output, 'w')
+        out = codecs.open(args.output, 'w', 'utf-8')
 
     # Process a reStructuredText document
     if args.doc_type == 'rst':
-        exit('error: rst NYI')
+        import bibgen.rst
+        bibgen.rst.register()
+        txt = bibgen.rst.process_file(open(doc_path).read(),
+                                      source_path=doc_path,
+                                      writer_name='html')
+        out.write(txt.decode('utf-8'))
     # Process a DocBook document
     elif args.doc_type == 'docbook':
+        import bibgen.xml
         if dom is None:
             dom = xml.dom.minidom.parse(args.document[0])
         # Render citations and fill the bibliography
-        bibgen.process_dom(dom, args.db_type, args.biblio, args.db_encoding,
-                           args.cit_sep, args.sort_order, args.style,
-                           link_format=lambda key: args.link_prefix+key.lower())
+        bibgen.xml.process_dom(dom, args.db_type, args.biblio,
+                               args.db_encoding,
+                               args.cit_sep, args.sort_order, args.style,
+                               link_format=lambda key: args.link_prefix+key.lower())
 
         # Write the result
         dom.writexml(out)

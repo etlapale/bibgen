@@ -4,3 +4,4 @@ bibgen-*.tar.xz
 build
 dist
 *.egg-info
+/*.html
