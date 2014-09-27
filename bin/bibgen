@@ -75,3 +75,7 @@ if __name__ == '__main__':
     else:
         out = open(args.output, 'w')
     dom.writexml(out)
+
+# Local Variables:
+# mode: python
+# End:
