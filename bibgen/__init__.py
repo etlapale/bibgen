@@ -23,6 +23,7 @@ import citeproc.formatter
 
 import bibgen.formatter
 
+
 docbook_ns = 'http://docbook.org/ns/docbook'
 
 

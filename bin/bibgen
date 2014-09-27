@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import argparse
+import pathlib
 import sys
 import xml.dom.minidom
 
@@ -26,10 +27,13 @@ description = 'Bibliography generator for XML documents'
 if __name__ == '__main__':
     # Command line arguments
     ap = argparse.ArgumentParser(description=description)
-    ap.add_argument('document', metavar='DBDOC.XML', nargs=1,
+    ap.add_argument('document', metavar='DOC', nargs=1,
                     help='input DocBook document')
     ap.add_argument('biblio', metavar='BIBLIO', nargs='?', default=None,
                     help='bibliography database')
+    ap.add_argument('-d', '--docbook', dest='doc_type',
+                    action='store_const', const='docbook', default=None,
+                    help='DocBook document')
     ap.add_argument('-e', '--encoding', dest='db_encoding',
                     default='utf-8',
                     help='encoding of the bibliography database')
@@ -46,6 +50,9 @@ if __name__ == '__main__':
                     help='generated DocBook bibliography')
     ap.add_argument('-p', '--link-prefix', dest='link_prefix', default='bib-',
                     help='prefix for bibliography links')
+    ap.add_argument('-r', '--restructuredtext', dest='doc_type',
+                    action='store_const', const='rst', default=None,
+                    help='reStructuredText document')
     ap.add_argument('-s', '--style', metavar='STYLE.CSL', default='harvard1',
                     help='path or name of citation style')
     ap.add_argument('-t', '--citation-separator', dest='cit_sep', default=';',
@@ -53,28 +60,54 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
     # Search for the database
+    doc_path = args.document[0]
     if args.db_type == 'mendeley' and args.biblio is None:
         args.biblio = bibgen.default_mendeley_database()
     elif args.db_type == 'bibtex' and args.biblio is None:
-        args.biblio = bibgen.default_bibtex_database(args.document[0])
+        args.biblio = bibgen.default_bibtex_database(doc_path)
     if args.biblio is None:
         exit('error: cannot find a bibliography database')
 
-    # Open the DocBook document
-    dom = xml.dom.minidom.parse(args.document[0])
-
-    # Render citations and fill the bibliography
-    bibgen.process_dom(dom, args.db_type, args.biblio, args.db_encoding,
-                       args.cit_sep, args.sort_order,
-                       args.style,
-                       link_format=lambda key: args.link_prefix+key.lower())
-
-    # Write the new DocBook document
+    # Try to infer document type
+    p = pathlib.Path(doc_path)
+    if not p.exists():
+        exit('error: cannot find input document')
+    dom = None
+    if args.doc_type is None:
+        suff = p.suffix
+        if suff == '.rst':
+            args.doc_type = 'rst'
+        elif suff == '.dbk':
+            args.doc_type = 'docbook'
+        elif suff == '.xml':
+            dom = xml.dom.minidom.parse(doc_path)
+            if dom.documentElement.namespaceURI == bibgen.docbook_ns:
+                args.doc_type = 'docbook'
+            else:
+                exit('error: unknown XML document type')
+        else:
+            exit('error: cannot infer document type')
+    
+    # Open the output stream
     if args.output is None:
         out = sys.stdout
     else:
         out = open(args.output, 'w')
-    dom.writexml(out)
+
+    # Process a reStructuredText document
+    if args.doc_type == 'rst':
+        exit('error: rst NYI')
+    # Process a DocBook document
+    elif args.doc_type == 'docbook':
+        if dom is None:
+            dom = xml.dom.minidom.parse(args.document[0])
+        # Render citations and fill the bibliography
+        bibgen.process_dom(dom, args.db_type, args.biblio, args.db_encoding,
+                           args.cit_sep, args.sort_order, args.style,
+                           link_format=lambda key: args.link_prefix+key.lower())
+
+        # Write the result
+        dom.writexml(out)
 
 # Local Variables:
 # mode: python
