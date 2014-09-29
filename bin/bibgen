@@ -88,6 +88,10 @@ if __name__ == '__main__':
                 exit('error: unknown XML document type')
         else:
             exit('error: cannot infer document type')
+
+    # Open the database
+    biblio = bibgen.open_bibliography(args.db_type, args.biblio,
+                                      args.db_encoding, args.style)
     
     # Open the output stream
     if args.output is None:
@@ -99,7 +103,7 @@ if __name__ == '__main__':
     if args.doc_type == 'rst':
         import bibgen.rst
         bibgen.rst.register()
-        txt = bibgen.rst.process_file(open(doc_path).read(),
+        txt = bibgen.rst.process_file(open(doc_path).read(), biblio,
                                       source_path=doc_path,
                                       writer_name='html')
         out.write(txt.decode('utf-8'))
@@ -109,9 +113,8 @@ if __name__ == '__main__':
         if dom is None:
             dom = xml.dom.minidom.parse(args.document[0])
         # Render citations and fill the bibliography
-        bibgen.xml.process_dom(dom, args.db_type, args.biblio,
-                               args.db_encoding,
-                               args.cit_sep, args.sort_order, args.style,
+        bibgen.xml.process_dom(dom, biblio,
+                               args.cit_sep, args.sort_order,
                                link_format=lambda key: args.link_prefix+key.lower())
 
         # Write the result
