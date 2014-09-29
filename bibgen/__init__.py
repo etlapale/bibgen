@@ -16,6 +16,10 @@ import os
 import os.path
 import pathlib
 
+import citeproc as cp
+
+import bibgen.formatter
+
 docbook_ns = 'http://docbook.org/ns/docbook'
 
 
@@ -43,8 +47,47 @@ def default_mendeley_database():
           return str(path)
     return None
 
+
 def default_bibtex_database(doc):
     for d in [os.path.dirname(doc)]:
         for path in pathlib.Path(d).glob('*.bib'):
             return str(path)
     return None
+
+
+def open_bibliography(db_type='mendeley', db=None, db_encoding='utf-8',
+                      style='harvard1'):
+    '''
+    :param str db_type:            Bibliography database type.
+    :param str db:                 Bibliography database.
+    :param str db_encoding:        Bibliography database encoding.
+    :param str style:              CSL style to use.
+    '''
+    # Select a default bibliography database
+    if db is None and db_type == 'mendeley':
+        db = bibgen.default_mendeley_database()
+
+    # Setup a citeproc context
+    bib_style = cp.CitationStylesStyle(style)
+    if db_type == 'mendeley':
+        from bibgen.citeproc.mendeley import CiteProcMendeley
+        bib_src = CiteProcMendeley(db)
+    elif db_type == 'json':
+        json_data = json.load(open(db))
+        bib_src = citeproc.source.json.CiteProcJSON(json_data)
+    # Default to BibTex
+    else: 
+        # Check for bibtexparser
+        try:
+            import bibtexparser
+            with codecs.open(db, 'r', db_encoding) as fp:
+                from bibgen.citeproc.bibtexparser import CiteProcBibTeX
+                bib_src = CiteProcBibTeX(fp)
+        # Use minimalistic bibtex parser from citeproc-py
+        except ImportError:
+            print('warning: defaulting to citeproc-py’s bibtex parser, you may want to install bibtexparser', file=sys.stderr)
+            with codecs.open(db, 'r', db_encoding) as fp:
+                bib_src = citeproc.source.bibtex.BibTeX(fp)
+    biblio = cp.CitationStylesBibliography(bib_style,
+                                           bib_src, bibgen.formatter)
+    return biblio
