@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='bibgen',
-      version='0.1.2',
+      version='0.2',
       description='A citation and bibliography generator',
       long_description='''bibgen is a Python script that allows styled
       citations and bibliography generation using external

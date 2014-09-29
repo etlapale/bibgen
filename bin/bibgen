@@ -91,7 +91,8 @@ if __name__ == '__main__':
 
     # Open the database
     biblio = bibgen.open_bibliography(args.db_type, args.biblio,
-                                      args.db_encoding, args.style)
+                                      args.db_encoding, args.style,
+                                      formatter_name=args.doc_type)
     
     # Open the output stream
     if args.output is None:

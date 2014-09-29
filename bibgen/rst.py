@@ -29,12 +29,10 @@ class CitationTransform(docutils.transforms.Transform):
 
         def warn(cit_item):
             print('warning: citation reference not found for', cit_item.key)
-        cit_txt = str(biblio.cite(cit,warn))
+        cit_txt = biblio.cite(cit,warn)
 
-        print('citation generated:', cit_txt)
         node = docutils.nodes.reference(raw_cit, cit_txt,
                                         refuri='http://emilien.tlapale.com')
-        print(self.startnode.parent)
         self.startnode.replace_self(node)
 
 def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
@@ -68,7 +66,11 @@ def register():
     docutils.parsers.rst.roles.register_canonical_role('cite', cite_role)
 
 def process_file(source, biblio, **kwds):
-    str = docutils.core.publish_string(source,
-                                       settings_overrides={'biblio': biblio},
-                                       **kwds)
+    if 'settings_overrides' in kwds:
+        so = kwds['settings_overrides']
+    else:
+        so = {}
+        kwds['settings_overrides'] = so
+    so['biblio'] = biblio
+    str = docutils.core.publish_string(source, **kwds)
     return str

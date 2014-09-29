@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
 import os
 import os.path
 import pathlib
 
 import citeproc as cp
-
-import bibgen.formatter
 
 docbook_ns = 'http://docbook.org/ns/docbook'
 
@@ -56,13 +55,19 @@ def default_bibtex_database(doc):
 
 
 def open_bibliography(db_type='mendeley', db=None, db_encoding='utf-8',
-                      style='harvard1'):
+                      style='harvard1', formatter_name=None):
     '''
     :param str db_type:            Bibliography database type.
     :param str db:                 Bibliography database.
     :param str db_encoding:        Bibliography database encoding.
     :param str style:              CSL style to use.
     '''
+    # Import the formatter
+    if formatter_name is None:
+        print('error: non formatter specified', file=sys.stderr)
+        return None
+    formatter = importlib.import_module('bibgen.formatter.'+formatter_name)
+
     # Select a default bibliography database
     if db is None and db_type == 'mendeley':
         db = bibgen.default_mendeley_database()
@@ -88,6 +93,5 @@ def open_bibliography(db_type='mendeley', db=None, db_encoding='utf-8',
             print('warning: defaulting to citeproc-py’s bibtex parser, you may want to install bibtexparser', file=sys.stderr)
             with codecs.open(db, 'r', db_encoding) as fp:
                 bib_src = citeproc.source.bibtex.BibTeX(fp)
-    biblio = cp.CitationStylesBibliography(bib_style,
-                                           bib_src, bibgen.formatter)
+    biblio = cp.CitationStylesBibliography(bib_style, bib_src, formatter)
     return biblio
