@@ -12,25 +12,63 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import citeproc
+
 import docutils.core
 import docutils.nodes
 import docutils.parsers.rst
 import docutils.parsers.rst.roles
 
 
+class CitationTransform(docutils.transforms.Transform):
+    default_priority = 700
+    def apply(self):
+        raw_cit = self.startnode.details['raw_citation']
+        cit = self.startnode.details['citation']
+        biblio = self.startnode.details['biblio']
+
+        def warn(cit_item):
+            print('warning: citation reference not found for', cit_item.key)
+        cit_txt = str(biblio.cite(cit,warn))
+
+        print('citation generated:', cit_txt)
+        node = docutils.nodes.reference(raw_cit, cit_txt,
+                                        refuri='http://emilien.tlapale.com')
+        print(self.startnode.parent)
+        self.startnode.replace_self(node)
+
 def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     docutils.parsers.rst.roles.set_classes(options)
-    ref = 'http://emilien.tlapale.com/bibgen'
-    node = docutils.nodes.reference(rawtext, 'Citation number 42', refuri=ref,
-                                    **options)
-    return [node], []
+
+    # Create a citation
+    biblio = inliner.document.settings.biblio
+    keys = text.split(';')
+    def mkitem(key):
+        return citeproc.CitationItem(key)
+    cit = citeproc.Citation([mkitem(key) for key in keys])
+    biblio.register(cit)
+
+    # Create a pending transform to generate the reference
+    # A transform is necessary to get a second pass, after numbering
+    # and other first pass citation process has been performed
+    pending = docutils.nodes.pending(CitationTransform)
+    pending.details['raw_citation'] = text
+    pending.details['citation'] = cit
+    pending.details['biblio'] = biblio
+    inliner.document.note_pending(pending)
+
+    # Container serving as position marker for the reference
+    node = docutils.nodes.container()
+    node.setup_child(pending)
+    node += pending
+
+    return node, []
 
 def register():
     docutils.parsers.rst.roles.register_canonical_role('cite', cite_role)
 
-def process_file(source, **kwds):
-    str = docutils.core.publish_string(source, **kwds)
+def process_file(source, biblio, **kwds):
+    str = docutils.core.publish_string(source,
+                                       settings_overrides={'biblio': biblio},
+                                       **kwds)
     return str
-
-#cite_role.options = …
-#cite_role.content = …

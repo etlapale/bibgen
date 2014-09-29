@@ -15,69 +15,30 @@
 import codecs
 import xml.dom.minidom
 
-import citeproc as cp
-import citeproc.formatter
-
-import bibgen.formatter
+import citeproc
 
 
-def process_dom(dom, db_type='mendeley', db=None, db_encoding='utf-8',
-                citation_separator=';', sort_order='alpha',
-                style='harvard1',
+def process_dom(dom, biblio, citation_separator=';', sort_order='alpha',
                 link_format=lambda x: x.lower()):
     '''
-    mendeley, json and bibtex bibliography database are supported.
-    
     :param xml.dom.Document dom:   Source DOM document.
-    :param str db_type:            Bibliography database type.
-    :param str db:                 Bibliography database.
-    :param str db_encoding:        Bibliography database encoding.
     :param str citation_separator: Separator delimiting multiple citations
                                    in a single <citation/> element.
-    :param str style:              CSL style to use.
     '''
-    # Select a default bibliography database
-    if db is None and db_type == 'mendeley':
-        db = bibgen.default_mendeley_database()
-
     # Search all citations and their keys
     cit_nodes = [(n.childNodes[0].data.lower().split(citation_separator),n)
                  for n in dom.getElementsByTagNameNS(docbook_ns, 'citation') 
                  if len(n.childNodes) == 1
                     and n.childNodes[0].nodeType == n.TEXT_NODE]
 
-    # Setup a citeproc context
-    bib_style = cp.CitationStylesStyle(style)
-    if db_type == 'mendeley':
-        from bibgen.citeproc.mendeley import CiteProcMendeley
-        bib_src = CiteProcMendeley(db)
-    elif db_type == 'json':
-        json_data = json.load(open(db))
-        bib_src = citeproc.source.json.CiteProcJSON(json_data)
-    # Default to BibTex
-    else: 
-        # Check for bibtexparser
-        try:
-            import bibtexparser
-            with codecs.open(db, 'r', db_encoding) as fp:
-                from bibgen.citeproc.bibtexparser import CiteProcBibTeX
-                bib_src = CiteProcBibTeX(fp)
-        # Use minimalistic bibtex parser from citeproc-py
-        except ImportError:
-            print('warning: defaulting to citeproc-py’s bibtex parser, you may want to install bibtexparser')
-            with codecs.open(db, 'r', db_encoding) as fp:
-                bib_src = citeproc.source.bibtex.BibTeX(fp)
-    biblio = cp.CitationStylesBibliography(bib_style,
-                                           bib_src, bibgen.formatter)
-
     # Create the citations
     cits = []
     for (keys,n) in cit_nodes:
         def mkitem(key):
-            return cp.CitationItem(key,
+            return citeproc.CitationItem(key,
                      prefix='<link linkend="%s">'%(link_format(key)),
                      suffix='</link>')
-        cit = cp.Citation([mkitem(key) for key in keys])
+        cit = citeproc.Citation([mkitem(key) for key in keys])
         biblio.register(cit)
         cits.append(cit)
 
