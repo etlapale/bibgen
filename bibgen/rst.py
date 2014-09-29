@@ -21,7 +21,15 @@ import docutils.parsers.rst.roles
 
 
 class CitationTransform(docutils.transforms.Transform):
+    '''
+    Docutils transform generating text for the registered citations.
+    Citations are registered during a first pass occuring at node
+    construction, but their text may need all the citations to be
+    generated first, for instance for numbering.
+    '''
+
     default_priority = 700
+
     def apply(self):
         raw_cit = self.startnode.details['raw_citation']
         cit = self.startnode.details['citation']
