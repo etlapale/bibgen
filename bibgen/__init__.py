@@ -19,8 +19,6 @@ import pathlib
 
 import citeproc as cp
 
-docbook_ns = 'http://docbook.org/ns/docbook'
-
 
 def default_mendeley_database():
     '''

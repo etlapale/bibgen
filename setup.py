@@ -18,9 +18,11 @@ setup(name='bibgen',
       author_email='emilien@tlapale.com',
       url='http://emilien.tlapale.com/code/bibgen',
       packages=['bibgen',
-                'bibgen.citeproc'],
+                'bibgen.citeproc',
+                'bibgen.formatter',
+               ],
       scripts=['bin/bibgen'],
-      install_requires = ['citeproc-py'],
+      install_requires = ['citeproc-py >= 0.3.0'],
       extras_require = {
         'enhanced_bibtex':  ['bibtexparser']
       },

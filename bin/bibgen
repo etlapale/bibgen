@@ -81,8 +81,9 @@ if __name__ == '__main__':
         elif suff == '.dbk':
             args.doc_type = 'docbook'
         elif suff == '.xml':
+            import bibgen.xml
             dom = xml.dom.minidom.parse(doc_path)
-            if dom.documentElement.namespaceURI == bibgen.docbook_ns:
+            if dom.documentElement.namespaceURI == bibgen.xml.docbook_ns:
                 args.doc_type = 'docbook'
             else:
                 exit('error: unknown XML document type')

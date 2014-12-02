@@ -18,6 +18,9 @@ import xml.dom.minidom
 import citeproc
 
 
+docbook_ns = 'http://docbook.org/ns/docbook'
+
+
 def process_dom(dom, biblio, citation_separator=';', sort_order='alpha',
                 link_format=lambda x: x.lower()):
     '''
