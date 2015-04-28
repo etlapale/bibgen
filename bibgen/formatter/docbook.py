@@ -1,6 +1,26 @@
 # DocBook formatter for citeproc-py
 
-from citeproc.formatter.html import TagWrapper, preformat
+from xml.sax.saxutils import escape
+
+
+def preformat(text):
+    return escape(str(text))
+
+class TagWrapper(str):
+    tag = None
+    attributes = None
+    @classmethod
+    def _wrap(cls, text):
+        if cls.attributes:
+            attrib = ' ' + ' '.join(['{}="{}"'.format(key, value)
+                                     for key, value in cls.attributes.items()])
+        else:
+            attrib = ''
+        return '<{tag}{attrib}>{text}</{tag}>'.format(tag=cls.tag,
+                                                      attrib=attrib,
+                                                      text=preformat(text))
+    def __new__(cls, text):
+        return super(TagWrapper, cls).__new__(cls, cls._wrap(text))
 
 class Italic(TagWrapper):
     tag = 'emphasis'
