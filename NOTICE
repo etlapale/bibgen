@@ -1,5 +1,5 @@
 bibgen – A citation and bibliography generator.
-Copyright © 2014 Émilien Tlapale
+Copyright © 2014–2015 Émilien Tlapale
 
 
 Function _bibtex_to_csl in bibgen/citeproc/bibtexparser.py was

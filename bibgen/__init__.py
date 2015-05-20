@@ -1,21 +1,14 @@
-# Copyright © 2014  Émilien Tlapale
+# -*- coding: utf-8; -*-
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2014–2015 Émilien Tlapale
+# Licensed under the Simplified BSD License
 
+from __future__ import print_function
+
+import glob
 import importlib
 import os
 import os.path
-import pathlib
 
 import citeproc as cp
 
@@ -40,15 +33,15 @@ def default_mendeley_database():
                              'Mendeley Desktop'))
     
     for d in dirs:
-      for path in pathlib.Path(d).glob('*@www.mendeley.com.sqlite'):
-          return str(path)
+      for path in glob.iglob('*@www.mendeley.com.sqlite'):
+          return path
     return None
 
 
 def default_bibtex_database(doc):
     for d in [os.path.dirname(doc)]:
-        for path in pathlib.Path(d).glob('*.bib'):
-            return str(path)
+        for path in glob.iglob('*.bib'):
+            return path
     return None
 
 
