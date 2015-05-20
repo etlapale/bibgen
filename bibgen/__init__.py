@@ -3,7 +3,7 @@
 # Copyright © 2014–2015 Émilien Tlapale
 # Licensed under the Simplified BSD License
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import glob
 import importlib
