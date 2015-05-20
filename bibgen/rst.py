@@ -122,10 +122,8 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
             db_path = self.arguments[0]
 
         # Other options
-        style = self.options['style'] \
-                if 'style' in self.options else 'harvard1'
-        encoding = self.options['encoding'] \
-                if 'encoding' in self.options else 'utf-8'
+        style = self.options.get('style', 'harvard1')
+        encoding = self.options.get('encoding', 'utf-8')
 
         # Open a biblio database for the document,
         # possibly replacing a command-line one.
