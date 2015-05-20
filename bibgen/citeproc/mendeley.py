@@ -1,3 +1,8 @@
+# -*- coding: utf-8; -*-
+#
+# Copyright © 2014–2015 Émilien Tlapale
+# Licensed under the Simplified BSD License
+
 from __future__ import print_function
 
 import sqlite3
@@ -38,7 +43,8 @@ class CiteProcMendeley(citeproc.source.BibliographySource):
             # Check type
             type = parse_type(doc['type'])
             if type is None:
-                print('warning: skipping unknown document type ‘%s’ for %s'%(doc['type'],doc['citationKey']),
+                #print('warning: skipping unknown document type ‘%s’ for %s'%(doc['type'],doc['citationKey']),
+                print('warning: skipping unknown document type',
                       file=sys.stderr)
                 continue
             
