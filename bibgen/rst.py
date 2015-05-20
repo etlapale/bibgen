@@ -4,7 +4,26 @@
 # Copyright © 2014–2015 Émilien Tlapale
 # Licensed under the Simplified BSD License
 
-from __future__ import absolute_import
+'''
+reStructuredText support for bibgen.
+
+Processing documents with citations and bibliographies is a three stage
+process.
+
+During the the first pass, the whole document is read, each
+citation is registered, and a ``bibliography`` directive is searched for.
+If no ``bibliography`` directive is found, the global bibliography
+database present in settings is used. If it does not exist, citations
+will not be resolved.
+
+During the second pass, all citations initially found are looked up in
+the bibliography database. During the third and last pass, all citations
+are finally formatted, and the bibliography directive is printed, if
+required.
+'''
+
+from __future__ import absolute_import, print_function
+import sys
 
 import citeproc
 
@@ -36,6 +55,8 @@ class CitationTransform(docutils.transforms.Transform):
         node = docutils.nodes.reference(raw_cit, cit_txt,
                                         refuri='http://emilien.tlapale.com')
         self.startnode.replace_self(node)
+        print('applying citation transform for', cit_txt,
+              file=sys.stderr)
 
 def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     docutils.parsers.rst.roles.set_classes(options)
@@ -57,6 +78,8 @@ def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     pending.details['biblio'] = biblio
     inliner.document.note_pending(pending)
 
+    print('parsing cite for %s'%str(keys), file=sys.stderr)
+
     # Container serving as position marker for the reference
     node = docutils.nodes.container()
     node.setup_child(pending)
@@ -64,8 +87,24 @@ def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
 
     return node, []
 
+class BibliographyDirective(docutils.parsers.rst.Directive):
+    required_arguments = 0
+    optional_arguments = 1
+    # Allow long multi-line references to a biblio database
+    final_argument_whitespace = True
+    has_content = False
+    
+    def run(self):
+        print('running the biblio directive', file=sys.stderr)
+        # The bibliography will be filled after the cite transforms
+        node = docutils.nodes.container()
+
+        return [node]
+
 def register():
     docutils.parsers.rst.roles.register_canonical_role('cite', cite_role)
+    docutils.parsers.rst.directives.register_directive('bibliography', BibliographyDirective)
+    
 
 def process_file(source, biblio, **kwds):
     if 'settings_overrides' in kwds:

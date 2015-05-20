@@ -63,7 +63,6 @@ if __name__ == '__main__':
         exit('error: could not find a bibliography database')
 
     # Try to infer document type
-    #p = (doc_path)
     if not os.path.exists(doc_path):
         exit('error: cannot find input document')
     doc_base,doc_ext = os.path.splitext(doc_path)
