@@ -44,6 +44,12 @@ def default_bibtex_database(doc):
             return path
     return None
 
+def default_database(db_type, doc_path=None):
+    if db_type == 'mendeley':
+        return default_mendeley_database()
+    elif db_type == 'bibtex':
+        return default_bibtex_database(doc_path)
+    return None
 
 def open_bibliography(db_type='mendeley', db=None, db_encoding='utf-8',
                       style='harvard1', formatter_name=None):

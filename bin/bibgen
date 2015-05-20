@@ -55,12 +55,8 @@ if __name__ == '__main__':
 
     # Search for the database
     doc_path = args.document[0]
-    if args.db_type == 'mendeley' and args.biblio is None:
-        args.biblio = bibgen.default_mendeley_database()
-    elif args.db_type == 'bibtex' and args.biblio is None:
-        args.biblio = bibgen.default_bibtex_database(doc_path)
     if args.biblio is None:
-        exit('error: could not find a bibliography database')
+        args.biblio = bibgen.default_database(args.db_type, doc_path)
 
     # Try to infer document type
     if not os.path.exists(doc_path):
@@ -83,10 +79,16 @@ if __name__ == '__main__':
         else:
             exit('error: cannot infer document type')
 
+    # Check if a biblio db is required
+    if args.biblio is None and args.doc_type != 'rst':
+        exit('error: could not find a bibliography database')
+
     # Open the database
-    biblio = bibgen.open_bibliography(args.db_type, args.biblio,
-                                      args.db_encoding, args.style,
-                                      formatter_name=args.doc_type)
+    biblio = None
+    if args.biblio:
+        biblio = bibgen.open_bibliography(args.db_type, args.biblio,
+                                          args.db_encoding, args.style,
+                                          formatter_name=args.doc_type)
     
     # Open the output stream
     if args.output is None:

@@ -32,6 +32,8 @@ import docutils.nodes
 import docutils.parsers.rst
 import docutils.parsers.rst.roles
 
+import bibgen
+
 
 class CitationTransform(docutils.transforms.Transform):
     '''
@@ -41,7 +43,7 @@ class CitationTransform(docutils.transforms.Transform):
     generated first, for instance for numbering.
     '''
 
-    default_priority = 700
+    default_priority = 800
 
     def apply(self):
         raw_cit = self.startnode.details['raw_citation']
@@ -58,27 +60,35 @@ class CitationTransform(docutils.transforms.Transform):
         print('applying citation transform for', cit_txt,
               file=sys.stderr)
 
+class CitationFirstTransform(docutils.transforms.Transform):
+    default_priority = 700
+
+    def apply(self):
+        print('first transform of', self.startnode.details['raw_citation'],
+              file=sys.stderr)
+        
 def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     docutils.parsers.rst.roles.set_classes(options)
 
     # Create a citation
-    biblio = inliner.document.settings.biblio
-    keys = text.split(';')
-    def mkitem(key):
-        return citeproc.CitationItem(key)
-    cit = citeproc.Citation([mkitem(key) for key in keys])
-    biblio.register(cit)
+    if False:
+        biblio = inliner.document.settings.biblio
+        keys = text.split(';')
+        def mkitem(key):
+            return citeproc.CitationItem(key)
+            cit = citeproc.Citation([mkitem(key) for key in keys])
+            biblio.register(cit)
 
     # Create a pending transform to generate the reference
     # A transform is necessary to get a second pass, after numbering
     # and other first pass citation process has been performed
-    pending = docutils.nodes.pending(CitationTransform)
+    pending = docutils.nodes.pending(CitationFirstTransform)
     pending.details['raw_citation'] = text
-    pending.details['citation'] = cit
-    pending.details['biblio'] = biblio
+    #pending.details['citation'] = cit
+    #pending.details['biblio'] = biblio
     inliner.document.note_pending(pending)
 
-    print('parsing cite for %s'%str(keys), file=sys.stderr)
+    print('parsing cite for %s'%text, file=sys.stderr)
 
     # Container serving as position marker for the reference
     node = docutils.nodes.container()
@@ -93,9 +103,36 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
     # Allow long multi-line references to a biblio database
     final_argument_whitespace = True
     has_content = False
+    option_spec = {'encoding': docutils.parsers.rst.directives.encoding,
+                   'mendeley': docutils.parsers.rst.directives.flag,
+                   'style': docutils.parsers.rst.directives.unchanged}
     
     def run(self):
         print('running the biblio directive', file=sys.stderr)
+
+        # Get biblio database type
+        db_type = 'bibtex'
+        if 'mendeley' in self.options:
+            db_type = 'mendeley'
+            
+        # Get biblio database
+        if len(self.arguments) == 0:
+            db_path = bibgen.default_database(db_type)
+        else:
+            db_path = self.arguments[0]
+
+        # Other options
+        style = self.options['style'] \
+                if 'style' in self.options else 'harvard1'
+        encoding = self.options['encoding'] \
+                if 'encoding' in self.options else 'utf-8'
+
+        # Open a biblio database for the document,
+        # possibly replacing a command-line one.
+        biblio = bibgen.open_bibliography(db_type, db_path,
+                                          encoding, style, 'rst')
+        self.state.document.settings.biblio = biblio
+        
         # The bibliography will be filled after the cite transforms
         node = docutils.nodes.container()
 
