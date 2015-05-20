@@ -31,16 +31,16 @@ def default_mendeley_database():
     dirs.append(os.path.join(os.path.expanduser('~'),
                              'Library', 'Application Support',
                              'Mendeley Desktop'))
-    
+
     for d in dirs:
-      for path in glob.iglob('*@www.mendeley.com.sqlite'):
+      for path in glob.iglob(os.path.join(d,'*@www.mendeley.com.sqlite')):
           return path
     return None
 
 
 def default_bibtex_database(doc):
     for d in [os.path.dirname(doc)]:
-        for path in glob.iglob('*.bib'):
+        for path in glob.iglob(os.path.join(d, '*.bib')):
             return path
     return None
 

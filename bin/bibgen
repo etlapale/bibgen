@@ -60,7 +60,7 @@ if __name__ == '__main__':
     elif args.db_type == 'bibtex' and args.biblio is None:
         args.biblio = bibgen.default_bibtex_database(doc_path)
     if args.biblio is None:
-        exit('error: cannot find a bibliography database')
+        exit('error: could not find a bibliography database')
 
     # Try to infer document type
     #p = (doc_path)
