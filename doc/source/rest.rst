@@ -18,7 +18,7 @@ A typical document might look like:
    shown that subject performance in a motion discrimination task
    is able to increase with training. See also `Matthews1999`.
 
-   .. bibliography:
+   .. bibliography::
       :mendeley:
 
 .. rst:directive:: bibliography
