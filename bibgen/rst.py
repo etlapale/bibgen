@@ -58,7 +58,7 @@ class CitationSecondTransform(docutils.transforms.Transform):
         #                                refuri='http://emilien.tlapale.com')
         node = docutils.nodes.Text(cit_txt)
         self.startnode.replace_self(node)
-        print('second transform for', cit_txt, file=sys.stderr)
+        #print('second transform for', cit_txt, file=sys.stderr)
 
         
 class CitationFirstTransform(docutils.transforms.Transform):
@@ -87,8 +87,8 @@ class CitationFirstTransform(docutils.transforms.Transform):
 
         self.startnode.replace_self(pending)
 
-        print('first transform of', self.startnode.details['raw_citation'],
-              file=sys.stderr)
+        #print('first transform of', self.startnode.details['raw_citation'],
+        #      file=sys.stderr)
         
         
 def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
@@ -103,7 +103,7 @@ def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     pending.details['raw_citation'] = text
     inliner.document.note_pending(pending)
 
-    print('parsing cite for %s'%text, file=sys.stderr)
+    #print('parsing cite for %s'%text, file=sys.stderr)
 
     # Container serving as position marker for the reference
     node = docutils.nodes.container()
@@ -122,8 +122,8 @@ class BibliographyTransform(docutils.transforms.Transform):
         sort = self.startnode.details['sort']
 
         # Create a bibliographic section
-        sect = docutils.nodes.section(classes=['bibliography'])
-        sect += docutils.nodes.title('', 'Bibliography')
+        sect = docutils.nodes.container(classes=['bibliography'])
+        #sect += docutils.nodes.title('', 'Bibliography')
 
         # List cited references
         bib_entries = list(zip(biblio.items, biblio.bibliography()))
@@ -134,12 +134,14 @@ class BibliographyTransform(docutils.transforms.Transform):
             entry_node = docutils.nodes.paragraph('', ''.join(bibitem))
             # TODO: Make biblio entries targetable
             #entry_node['refid'] = itm.key
-            print(dir(entry_node))
             sect += entry_node
         
         self.startnode.replace_self(sect)
 
-        print('bibliography transform', file=sys.stderr)
+        # Done with the bibliography
+        self.document.settings.biblio = None
+
+        #print('bibliography transform', file=sys.stderr)
         
 
 class BibliographyDirective(docutils.parsers.rst.Directive):
@@ -153,7 +155,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
                    'style': docutils.parsers.rst.directives.unchanged}
     
     def run(self):
-        print('running the biblio directive', file=sys.stderr)
+        #print('running the biblio directive', file=sys.stderr)
 
         # Get biblio database type
         db_type = 'bibtex'
