@@ -5,8 +5,21 @@ Roles and directives
 --------------------
 
 Bibgen provides a reStructuredText_ directive to define a bibliography
-database, ``bibliography``, and a directive to cite elements from that
-database, ``cite``.
+database, :rst:dir:`bibliography`, and a directive to cite elements from that
+database, :rst:role:`cite`.
+
+A typical document might look like:
+
+.. code-block:: rst
+
+   .. default-role:: cite
+   
+   In their classical articles, `Ball1982;Ball1987`
+   shown that subject performance in a motion discrimination task
+   is able to increase with training. See also `Matthews1999`.
+
+   .. bibliography:
+      :mendeley:
 
 .. rst:directive:: bibliography
 
