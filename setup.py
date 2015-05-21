@@ -4,7 +4,7 @@
 from setuptools import setup
 
 setup(name='bibgen',
-      version='0.2',
+      version='0.3',
       description='A citation and bibliography generator',
       long_description='''Bibgen is a Python script that allows styled
 citations and bibliography generation using external bibliographic
