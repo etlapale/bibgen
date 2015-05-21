@@ -10,16 +10,19 @@ reStructuredText support for bibgen.
 Processing documents with citations and bibliographies is a three stage
 process.
 
-During the the first pass, the whole document is read, each
-citation is registered, and a ``bibliography`` directive is searched for.
-If no ``bibliography`` directive is found, the global bibliography
-database present in settings is used. If it does not exist, citations
-will not be resolved.
+During the the first pass, the whole document is read, each citation
+is marked as pending, and a ``bibliography`` directive is searched
+for.  If no ``bibliography`` directive is found, the global
+bibliography database present in settings is used. If it does not
+exist, citations will not be resolved.
 
 During the second pass, all citations initially found are looked up in
-the bibliography database. During the third and last pass, all citations
-are finally formatted, and the bibliography directive is printed, if
-required.
+the bibliography database and registered. Then full bibliographic
+entries are generated, if required, at the location of the
+``.. bibliography::`` directive.
+
+During the third and last pass, all citations are finally formatted,
+and with references (links) to the bibliographic entries.
 '''
 
 from __future__ import absolute_import, print_function
@@ -148,6 +151,15 @@ class BibliographyTransform(docutils.transforms.Transform):
         # Get the document biblio database
         biblio = self.startnode.details['biblio']
         sort = self.startnode.details['sort']
+        hidden = self.startnode.details['hidden']
+
+        # Done with the bibliography
+        self.document.settings.biblio = None
+
+        # Hidden bibliography directives show no entries
+        if hidden:
+            self.startnode.replace_self([])
+            return
 
         # Create a bibliographic section
         sect = docutils.nodes.container(classes=['bibliography'])
@@ -170,9 +182,6 @@ class BibliographyTransform(docutils.transforms.Transform):
         
         self.startnode.replace_self(sect)
 
-        # Done with the bibliography
-        self.document.settings.biblio = None
-
         #print('bibliography transform', file=sys.stderr)
         
 
@@ -183,8 +192,10 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
     final_argument_whitespace = True
     has_content = False
     option_spec = {'encoding': docutils.parsers.rst.directives.encoding,
+                   'hidden': docutils.parsers.rst.directives.flag,
                    'mendeley': docutils.parsers.rst.directives.flag,
-                   'style': docutils.parsers.rst.directives.unchanged}
+                   'sort': docutils.parsers.rst.directives.unchanged_required,
+                   'style': docutils.parsers.rst.directives.unchanged_required}
     
     def run(self):
         #print('running the biblio directive', file=sys.stderr)
@@ -201,6 +212,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
             db_path = self.arguments[0]
 
         # Other options
+        hidden = 'hidden' in self.options
         style = self.options.get('style', 'harvard1')
         encoding = self.options.get('encoding', 'utf-8')
         sort = self.options.get('sort', 'alpha')
@@ -213,6 +225,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
 
         pending = docutils.nodes.pending(BibliographyTransform)
         pending.details['biblio'] = biblio
+        pending.details['hidden'] = hidden
         pending.details['sort'] = sort
         self.state.document.note_pending(pending)
         
