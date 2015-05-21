@@ -5,4 +5,4 @@ Document types
    :maxdepth: 3
 
    docbook
-   reST
+   rest
