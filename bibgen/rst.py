@@ -51,14 +51,37 @@ class CitationSecondTransform(docutils.transforms.Transform):
         biblio = self.startnode.details['biblio']
 
         def warn(cit_item):
-            print('warning: citation reference not found for', cit_item.key)
+            print('warning: citation reference not found for', cit_item.key,
+                  file=sys.stderr)
         cit_txt = biblio.cite(cit, warn)
 
-        #node = docutils.nodes.reference(raw_cit, cit_txt,
-        #                                refuri='http://emilien.tlapale.com')
-        node = docutils.nodes.Text(cit_txt)
-        self.startnode.replace_self(node)
-        #print('second transform for', cit_txt, file=sys.stderr)
+        nodes = []
+        if sys.version_info >= (3, 0):
+            txt = str(cit_txt)
+        else:
+            txt = unicode(cit_txt)
+
+        # Create links to bibliography elements
+        pos = 0
+        lpos = txt.find('<link:', pos)
+        while lpos >= 0:
+            if lpos > pos:
+                nodes.append(docutils.nodes.Text(txt[pos:lpos]))
+            e = txt.find('>', lpos+6)
+            if e < 0:
+                break
+            key = txt[lpos+6:e]
+            t = txt.find('</link>', e+1)
+            if t < 0:
+                break
+            node = docutils.nodes.reference('', txt[e+1:t], refid=key)
+            nodes.append(node)
+            pos = t + 7
+            lpos = txt.find('<link:', pos)
+        if pos < len(txt):
+            nodes.append(docutils.nodes.Text(txt[pos:]))
+
+        self.startnode.replace_self(nodes)
 
         
 class CitationFirstTransform(docutils.transforms.Transform):
@@ -71,10 +94,15 @@ class CitationFirstTransform(docutils.transforms.Transform):
         # Get the citation keys
         raw_cit = self.startnode.details['raw_citation']
         keys = raw_cit.split(';')
+
+        def link_format(key):
+            return 'bib-'+key.lower()
         
         # Create a citation and register it
         def mkitem(key):
-            return citeproc.CitationItem(key)
+            return citeproc.CitationItem(key,
+                                         prefix='<link:%s>'%link_format(key),
+                                         suffix='</link>')
         cit = citeproc.Citation([mkitem(key) for key in keys])
         biblio.register(cit)
 
@@ -130,8 +158,12 @@ class BibliographyTransform(docutils.transforms.Transform):
         if sort == 'alpha':
             bib_entries.sort(key=lambda x: x[0].key)
 
+        def link_format(x):
+            return 'bib-'+x.lower()
+
         for (itm,bibitem) in bib_entries:
-            entry_node = docutils.nodes.paragraph('', ''.join(bibitem))
+            entry_node = docutils.nodes.paragraph('', ''.join(bibitem),
+                                                  ids=[link_format(itm.key)])
             # TODO: Make biblio entries targetable
             #entry_node['refid'] = itm.key
             sect += entry_node
