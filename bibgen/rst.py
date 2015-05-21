@@ -190,7 +190,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
     optional_arguments = 1
     # Allow long multi-line references to a biblio database
     final_argument_whitespace = True
-    has_content = False
+    has_content = True
     option_spec = {'encoding': docutils.parsers.rst.directives.encoding,
                    'hidden': docutils.parsers.rst.directives.flag,
                    'mendeley': docutils.parsers.rst.directives.flag,
@@ -199,6 +199,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
     
     def run(self):
         #print('running the biblio directive', file=sys.stderr)
+        #print('bibliography directive, content=', self.content, file=sys.stderr)
 
         # Get biblio database type
         db_type = 'bibtex'
@@ -221,7 +222,16 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
         # possibly replacing a command-line one.
         biblio = bibgen.open_bibliography(db_type, db_path,
                                           encoding, style, 'rst')
-        self.state.document.settings.biblio = biblio
+
+        # Create citations for the content
+        if len(self.content) > 0:
+            for key in self.content:
+                itm = citeproc.CitationItem(key)
+                cit = citeproc.Citation([itm])
+                biblio.register(cit)
+        # Only ibliography directives without content are citable
+        else:
+            self.state.document.settings.biblio = biblio
 
         pending = docutils.nodes.pending(BibliographyTransform)
         pending.details['biblio'] = biblio

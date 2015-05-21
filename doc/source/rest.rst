@@ -20,26 +20,50 @@ database, ``cite``.
      Defines the encoding of the bibliography database.
      Defaults to ``utf-8``.
 
+   ``:hidden:``
+     Do not print entries for cited bibliographic elements.
+
    ``:mendeley:``
      Indicates to use a Mendeley sqlite database.
      By default a BibTeX database is assume.
 
    ``:style: name``
      Specify the formated citation style. Defaults to ``harvard1``.
-   
+
+   ``:sort: order``
+     Specify order by which bibliographic entries are
+     displayed. Defaults to ``alpha`` for alphabetic order. You can
+     use ``cited`` for citation order.
+
+   :rst:dir:`bibliography` directives can also include content referencing
+   specific bibliographic items to be displayed:
+
+   .. code-block:: rst
+
+      .. bibliography::
+	 :mendeley:
+
+	 Bayerl2004
+	 Gros1998
+
+   In this case, the entries will not be referencable by
+   :rst:role:`cite` roles and you will need another
+   :rst:dir:`bibliography` directive with no content.
+     
 .. rst:role:: cite
 
    Insert a formatted citation to a specific bibliography item. The
    cited item will be added to the printed bibliography. Cited items
    can be inserted before the corresponding :rst:dir:`bibliography`
    directive.
-		   
+   
 Command-line
 ------------
 
-When using the command-line script ``bibgen``, you can either specify
-the bibliography database through as a command-line argument, or by
-specifying a ``bibliography`` directive.
+When using the command-line script ``bibgen``, you can specify the
+bibliography database through as a command-line argument. It will have
+the same effect as equivalent to using a ``hidden``
+:rst:dir:`bibliography` directive.
 
 Integration
 -----------

@@ -8,3 +8,10 @@ See the work of :cite:`Tlapale2010` or :cite:`Bayerl2004;Bayerl2007`.
 
 .. bibliography::
    :mendeley:
+      
+.. bibliography::
+   :mendeley:
+
+   Albright1984
+   Gros1998
+   
