@@ -65,7 +65,7 @@ bibtexparser_
 Download
 --------
 `bibgen-0.2.tar.xz </data/bibgen/bibgen-0.2.tar.xz>`_
-(2015-05-21) Support for Python 2 and reStructuredText.
+(2015-05-21) Support for Python 2 and reStructuredText
 |
 `archives </data/bibgen/>`_
 
