@@ -3,7 +3,9 @@
 # Copyright © 2014–2015 Émilien Tlapale
 # Licensed under the Simplified BSD License
 
-#from citeproc.formatter.rst import 
+from citeproc.formatter.plain import  *
 
-def preformat(text):
-    return text
+#def preformat(text):
+#    return text
+
+

@@ -43,7 +43,7 @@ class CitationSecondTransform(docutils.transforms.Transform):
     generated first, for instance for numbering.
     '''
 
-    default_priority = 800
+    default_priority = 900
 
     def apply(self):
         raw_cit = self.startnode.details['raw_citation']
@@ -54,13 +54,13 @@ class CitationSecondTransform(docutils.transforms.Transform):
             print('warning: citation reference not found for', cit_item.key)
         cit_txt = biblio.cite(cit, warn)
 
-        print(raw_cit, cit_txt)
         #node = docutils.nodes.reference(raw_cit, cit_txt,
         #                                refuri='http://emilien.tlapale.com')
         node = docutils.nodes.Text(cit_txt)
         self.startnode.replace_self(node)
         print('second transform for', cit_txt, file=sys.stderr)
 
+        
 class CitationFirstTransform(docutils.transforms.Transform):
     default_priority = 700
 
@@ -101,8 +101,6 @@ def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     # and other first pass citation process has been performed
     pending = docutils.nodes.pending(CitationFirstTransform)
     pending.details['raw_citation'] = text
-    #pending.details['citation'] = cit
-    #pending.details['biblio'] = biblio
     inliner.document.note_pending(pending)
 
     print('parsing cite for %s'%text, file=sys.stderr)
@@ -113,6 +111,33 @@ def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     node += pending
 
     return node, []
+
+
+class BibliographyTransform(docutils.transforms.Transform):
+    default_priority = 800
+
+    def apply(self):
+        # Get the document biblio database
+        biblio = self.startnode.details['biblio']
+
+        # Create a bibliographic section
+        sect = docutils.nodes.section(classes=['bibliography'])
+        sect += docutils.nodes.title('', 'Bibliography')
+
+        # Print each cited reference
+        bib_entries = list(zip(biblio.items, biblio.bibliography()))
+
+        for (itm,bibitem) in bib_entries:
+            entry_node = docutils.nodes.paragraph('', ''.join(bibitem))
+            # TODO: Make biblio entries targetable
+            #entry_node['refid'] = itm.key
+            print(dir(entry_node))
+            sect += entry_node
+        
+        self.startnode.replace_self(sect)
+
+        print('bibliography transform', file=sys.stderr)
+        
 
 class BibliographyDirective(docutils.parsers.rst.Directive):
     required_arguments = 0
@@ -147,9 +172,15 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
         biblio = bibgen.open_bibliography(db_type, db_path,
                                           encoding, style, 'rst')
         self.state.document.settings.biblio = biblio
+
+        pending = docutils.nodes.pending(BibliographyTransform)
+        pending.details['biblio'] = biblio
+        self.state.document.note_pending(pending)
         
         # The bibliography will be filled after the cite transforms
         node = docutils.nodes.container()
+        node.setup_child(pending)
+        node += pending
 
         return [node]
 
