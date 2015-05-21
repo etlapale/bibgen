@@ -35,7 +35,7 @@ import docutils.parsers.rst.roles
 import bibgen
 
 
-class CitationTransform(docutils.transforms.Transform):
+class CitationSecondTransform(docutils.transforms.Transform):
     '''
     Docutils transform generating text for the registered citations.
     Citations are registered during a first pass occuring at node
@@ -52,33 +52,50 @@ class CitationTransform(docutils.transforms.Transform):
 
         def warn(cit_item):
             print('warning: citation reference not found for', cit_item.key)
-        cit_txt = biblio.cite(cit,warn)
+        cit_txt = biblio.cite(cit, warn)
 
-        node = docutils.nodes.reference(raw_cit, cit_txt,
-                                        refuri='http://emilien.tlapale.com')
+        print(raw_cit, cit_txt)
+        #node = docutils.nodes.reference(raw_cit, cit_txt,
+        #                                refuri='http://emilien.tlapale.com')
+        node = docutils.nodes.Text(cit_txt)
         self.startnode.replace_self(node)
-        print('applying citation transform for', cit_txt,
-              file=sys.stderr)
+        print('second transform for', cit_txt, file=sys.stderr)
 
 class CitationFirstTransform(docutils.transforms.Transform):
     default_priority = 700
 
     def apply(self):
+        # Get the document biblio database
+        biblio = self.document.settings.biblio
+        
+        # Get the citation keys
+        raw_cit = self.startnode.details['raw_citation']
+        keys = raw_cit.split(';')
+        
+        # Create a citation and register it
+        def mkitem(key):
+            return citeproc.CitationItem(key)
+        cit = citeproc.Citation([mkitem(key) for key in keys])
+        biblio.register(cit)
+
+        # Create a new pending for the second transform
+        pending = docutils.nodes.pending(CitationSecondTransform)
+        pending.details['raw_citation'] = raw_cit
+        pending.details['citation'] = cit
+        pending.details['biblio'] = biblio
+        self.document.note_pending(pending)
+
+        self.startnode.replace_self(pending)
+
         print('first transform of', self.startnode.details['raw_citation'],
               file=sys.stderr)
+        
         
 def cite_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     docutils.parsers.rst.roles.set_classes(options)
 
     # Create a citation
-    if False:
-        biblio = inliner.document.settings.biblio
-        keys = text.split(';')
-        def mkitem(key):
-            return citeproc.CitationItem(key)
-            cit = citeproc.Citation([mkitem(key) for key in keys])
-            biblio.register(cit)
-
+    
     # Create a pending transform to generate the reference
     # A transform is necessary to get a second pass, after numbering
     # and other first pass citation process has been performed
