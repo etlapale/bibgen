@@ -4,8 +4,3 @@
 # Licensed under the Simplified BSD License
 
 from citeproc.formatter.plain import  *
-
-#def preformat(text):
-#    return text
-
-

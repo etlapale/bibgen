@@ -119,13 +119,16 @@ class BibliographyTransform(docutils.transforms.Transform):
     def apply(self):
         # Get the document biblio database
         biblio = self.startnode.details['biblio']
+        sort = self.startnode.details['sort']
 
         # Create a bibliographic section
         sect = docutils.nodes.section(classes=['bibliography'])
         sect += docutils.nodes.title('', 'Bibliography')
 
-        # Print each cited reference
+        # List cited references
         bib_entries = list(zip(biblio.items, biblio.bibliography()))
+        if sort == 'alpha':
+            bib_entries.sort(key=lambda x: x[0].key)
 
         for (itm,bibitem) in bib_entries:
             entry_node = docutils.nodes.paragraph('', ''.join(bibitem))
@@ -166,6 +169,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
         # Other options
         style = self.options.get('style', 'harvard1')
         encoding = self.options.get('encoding', 'utf-8')
+        sort = self.options.get('sort', 'alpha')
 
         # Open a biblio database for the document,
         # possibly replacing a command-line one.
@@ -175,6 +179,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
 
         pending = docutils.nodes.pending(BibliographyTransform)
         pending.details['biblio'] = biblio
+        pending.details['sort'] = sort
         self.state.document.note_pending(pending)
         
         # The bibliography will be filled after the cite transforms
