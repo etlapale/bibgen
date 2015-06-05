@@ -38,6 +38,22 @@ import docutils.parsers.rst.roles
 import bibgen
 
 
+def parse_fragment(settings, text):
+    '''Parse a generated reST fragment.'''
+    # Get the parser
+    parser = settings.rst_parser if \
+             hasattr(settings, 'rst_parser') else \
+             docutils.parsers.rst.Parser()
+    # Create an empty document
+    doc = docutils.utils.new_document('generated-bibliography')
+    doc.settings.pep_references = 0
+    doc.settings.rfc_references = 0
+    doc.settings.tab_width = 8
+    # Parse the rst fragment
+    parser.parse(text, doc)
+    return doc
+
+
 class CitationSecondTransform(docutils.transforms.Transform):
     '''
     Docutils transform generating text for the registered citations.
@@ -64,26 +80,11 @@ class CitationSecondTransform(docutils.transforms.Transform):
         else:
             txt = unicode(cit_txt)
 
-        # Create links to bibliography elements
-        # pos = 0
-        # lpos = txt.find('<link:', pos)
-        # while lpos >= 0:
-        #     if lpos > pos:
-        #         nodes.append(docutils.nodes.Text(txt[pos:lpos]))
-        #     e = txt.find('>', lpos+6)
-        #     if e < 0:
-        #         break
-        #     key = txt[lpos+6:e]
-        #     t = txt.find('</link>', e+1)
-        #     if t < 0:
-        #         break
-        #     node = docutils.nodes.reference('', txt[e+1:t], refid=key)
-        #     nodes.append(node)
-        #     pos = t + 7
-        #     lpos = txt.find('<link:', pos)
-        # if pos < len(txt):
-        #     nodes.append(docutils.nodes.Text(txt[pos:]))
-
+        nodes = []
+        doc_item = parse_fragment(self.document.settings, txt)
+        for child in doc_item.children[0].children:
+            nodes.append(child)
+            
         self.startnode.replace_self(nodes)
 
         
@@ -103,9 +104,9 @@ class CitationFirstTransform(docutils.transforms.Transform):
         
         # Create a citation and register it
         def mkitem(key):
-            return citeproc.CitationItem(key)#,
-                                         #prefix='<link target="%s">'%link_format(key),
-                                         #suffix='</link>')
+            return citeproc.CitationItem(key,
+                                         prefix='`',
+                                         suffix=' <#%s>`_'%link_format(key))
         cit = citeproc.Citation([mkitem(key) for key in keys])
         biblio.register(cit)
 
@@ -161,10 +162,6 @@ class BibliographyTransform(docutils.transforms.Transform):
             self.startnode.replace_self([])
             return
 
-        # Create a bibliographic section
-        #sect = docutils.nodes.container(classes=['bibliography'])
-        #sect += docutils.nodes.title('', 'Bibliography')
-
         # List cited references
         bib_entries = list(zip(biblio.items, biblio.bibliography()))
         if sort == 'alpha':
@@ -176,15 +173,10 @@ class BibliographyTransform(docutils.transforms.Transform):
         nodes = []
         for (itm,bibitem) in bib_entries:
             text = ''.join(bibitem)
-            parser = docutils.parsers.rst.Parser()
-            doc_item = docutils.utils.new_document('generated-bibliography')
-            doc_item.settings.pep_references = 0
-            doc_item.settings.rfc_references = 0
-            doc_item.settings.tab_width = 8
-            parser.parse(text, doc_item)
+            doc_item = parse_fragment(self.document.settings, text)
 
-            entry_node = docutils.nodes.container('', classes=['bibentry'],
-                                                 ids=[link_format(itm.key)])
+            entry_node = docutils.nodes.paragraph('', classes=['bibentry'],
+                                                  ids=[link_format(itm.key)])
             for child in doc_item.children:
                 entry_node.setup_child(child)
                 entry_node += child
@@ -268,5 +260,8 @@ def process_file(source, biblio, **kwds):
         so = {}
         kwds['settings_overrides'] = so
     so['biblio'] = biblio
+    # Create a reST parser for generated content
+    so['rst_parser'] = docutils.parsers.rst.Parser()
+    # Parse and publish
     str = docutils.core.publish_string(source, **kwds)
     return str
