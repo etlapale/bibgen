@@ -3,4 +3,5 @@
 # Copyright © 2014–2015 Émilien Tlapale
 # Licensed under the Simplified BSD License
 
-from citeproc.formatter.plain import  *
+from citeproc.formatter.rst import  *
+#from docbook import *

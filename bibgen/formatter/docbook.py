@@ -4,7 +4,7 @@ from xml.sax.saxutils import escape
 
 
 def preformat(text):
-    return escape(str(text))
+    return escape(unicode(text))
 
 class TagWrapper(str):
     tag = None

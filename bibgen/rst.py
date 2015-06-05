@@ -65,24 +65,24 @@ class CitationSecondTransform(docutils.transforms.Transform):
             txt = unicode(cit_txt)
 
         # Create links to bibliography elements
-        pos = 0
-        lpos = txt.find('<link:', pos)
-        while lpos >= 0:
-            if lpos > pos:
-                nodes.append(docutils.nodes.Text(txt[pos:lpos]))
-            e = txt.find('>', lpos+6)
-            if e < 0:
-                break
-            key = txt[lpos+6:e]
-            t = txt.find('</link>', e+1)
-            if t < 0:
-                break
-            node = docutils.nodes.reference('', txt[e+1:t], refid=key)
-            nodes.append(node)
-            pos = t + 7
-            lpos = txt.find('<link:', pos)
-        if pos < len(txt):
-            nodes.append(docutils.nodes.Text(txt[pos:]))
+        # pos = 0
+        # lpos = txt.find('<link:', pos)
+        # while lpos >= 0:
+        #     if lpos > pos:
+        #         nodes.append(docutils.nodes.Text(txt[pos:lpos]))
+        #     e = txt.find('>', lpos+6)
+        #     if e < 0:
+        #         break
+        #     key = txt[lpos+6:e]
+        #     t = txt.find('</link>', e+1)
+        #     if t < 0:
+        #         break
+        #     node = docutils.nodes.reference('', txt[e+1:t], refid=key)
+        #     nodes.append(node)
+        #     pos = t + 7
+        #     lpos = txt.find('<link:', pos)
+        # if pos < len(txt):
+        #     nodes.append(docutils.nodes.Text(txt[pos:]))
 
         self.startnode.replace_self(nodes)
 
@@ -103,9 +103,9 @@ class CitationFirstTransform(docutils.transforms.Transform):
         
         # Create a citation and register it
         def mkitem(key):
-            return citeproc.CitationItem(key,
-                                         prefix='<link:%s>'%link_format(key),
-                                         suffix='</link>')
+            return citeproc.CitationItem(key)#,
+                                         #prefix='<link target="%s">'%link_format(key),
+                                         #suffix='</link>')
         cit = citeproc.Citation([mkitem(key) for key in keys])
         biblio.register(cit)
 
@@ -162,7 +162,7 @@ class BibliographyTransform(docutils.transforms.Transform):
             return
 
         # Create a bibliographic section
-        sect = docutils.nodes.container(classes=['bibliography'])
+        #sect = docutils.nodes.container(classes=['bibliography'])
         #sect += docutils.nodes.title('', 'Bibliography')
 
         # List cited references
@@ -173,16 +173,26 @@ class BibliographyTransform(docutils.transforms.Transform):
         def link_format(x):
             return 'bib-'+x.lower()
 
+        nodes = []
         for (itm,bibitem) in bib_entries:
-            entry_node = docutils.nodes.paragraph('', ''.join(bibitem),
-                                                  ids=[link_format(itm.key)])
-            # TODO: Make biblio entries targetable
-            #entry_node['refid'] = itm.key
-            sect += entry_node
-        
-        self.startnode.replace_self(sect)
+            text = ''.join(bibitem)
+            parser = docutils.parsers.rst.Parser()
+            doc_item = docutils.utils.new_document('generated-bibliography')
+            doc_item.settings.pep_references = 0
+            doc_item.settings.rfc_references = 0
+            doc_item.settings.tab_width = 8
+            parser.parse(text, doc_item)
 
-        #print('bibliography transform', file=sys.stderr)
+            entry_node = docutils.nodes.container('', classes=['bibentry'],
+                                                 ids=[link_format(itm.key)])
+            for child in doc_item.children:
+                entry_node.setup_child(child)
+                entry_node += child
+
+            self.startnode.setup_child(entry_node)
+            nodes.append(entry_node)
+
+        self.startnode.replace_self(nodes)
         
 
 class BibliographyDirective(docutils.parsers.rst.Directive):
@@ -240,7 +250,7 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
         self.state.document.note_pending(pending)
         
         # The bibliography will be filled after the cite transforms
-        node = docutils.nodes.container()
+        node = docutils.nodes.container(classes=['bibliography'])
         node.setup_child(pending)
         node += pending
 
