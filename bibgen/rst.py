@@ -26,6 +26,7 @@ and with references (links) to the bibliographic entries.
 '''
 
 from __future__ import absolute_import, print_function
+import os.path
 import re
 import sys
 
@@ -216,6 +217,14 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
             db_path = bibgen.default_database(db_type)
         else:
             db_path = self.arguments[0]
+
+        # Make the biblio path relative to the source directory
+        src_path = self.state.document.current_source
+        if os.path.exists(src_path):
+            src_dir = os.path.dirname(src_path)
+            rel_path = os.path.join(src_dir, db_path)
+            if os.path.exists(rel_path):
+                db_path = rel_path
 
         # Other options
         hidden = 'hidden' in self.options

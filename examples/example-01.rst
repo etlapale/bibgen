@@ -15,7 +15,7 @@ A couple of elements:
 
 Full bibliography:
 
-.. bibliography:: examples/biblio.bib
+.. bibliography:: biblio.bib
    :all:
 
 Only cited entries:
