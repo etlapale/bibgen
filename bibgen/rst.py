@@ -26,6 +26,7 @@ and with references (links) to the bibliographic entries.
 '''
 
 from __future__ import absolute_import, print_function
+import re
 import sys
 
 import citeproc
@@ -172,7 +173,8 @@ class BibliographyTransform(docutils.transforms.Transform):
 
         nodes = []
         for (itm,bibitem) in bib_entries:
-            text = ''.join(bibitem)
+            text = re.sub('\n', ' ', ''.join(bibitem))
+            print(text)
             doc_item = parse_fragment(self.document.settings, text)
 
             entry_node = docutils.nodes.paragraph('', classes=['bibentry'],
@@ -193,7 +195,8 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
     # Allow long multi-line references to a biblio database
     final_argument_whitespace = True
     has_content = True
-    option_spec = {'encoding': docutils.parsers.rst.directives.encoding,
+    option_spec = {'all': docutils.parsers.rst.directives.flag,
+                   'encoding': docutils.parsers.rst.directives.encoding,
                    'hidden': docutils.parsers.rst.directives.flag,
                    'mendeley': docutils.parsers.rst.directives.flag,
                    'sort': docutils.parsers.rst.directives.unchanged_required,
@@ -228,6 +231,12 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
         # Create citations for the content
         if len(self.content) > 0:
             for key in self.content:
+                itm = citeproc.CitationItem(key)
+                cit = citeproc.Citation([itm])
+                biblio.register(cit)
+        # Cite every bibliographic entry if asked
+        elif 'all' in self.options:
+            for key in biblio.source:
                 itm = citeproc.CitationItem(key)
                 cit = citeproc.Citation([itm])
                 biblio.register(cit)
