@@ -28,6 +28,9 @@ A typical document might look like:
    used to specify a non-default database name.
 
    The following options are accepted:
+		   
+   ``:all:``
+     Generate entries for all bibliographic entries.
 
    ``:encoding: name``
      Defines the encoding of the bibliography database.
