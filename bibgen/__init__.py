@@ -5,12 +5,17 @@
 
 from __future__ import absolute_import, print_function
 
+import codecs
 import glob
 import importlib
 import os
 import os.path
+import sys
 
+import citeproc
 import citeproc as cp
+import citeproc.source
+import citeproc.source.bibtex
 
 
 def default_mendeley_database():
@@ -89,6 +94,7 @@ def open_bibliography(db_type='mendeley', db=None, db_encoding='utf-8',
         except ImportError:
             print('warning: defaulting to citeproc-py’s bibtex parser, you may want to install bibtexparser', file=sys.stderr)
             with codecs.open(db, 'r', db_encoding) as fp:
+                import citeproc
                 bib_src = citeproc.source.bibtex.BibTeX(fp)
     biblio = cp.CitationStylesBibliography(bib_style, bib_src, formatter)
     return biblio
