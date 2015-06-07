@@ -41,7 +41,7 @@ if __name__ == '__main__':
                     const='nosort', default='alpha',
                     help='do not sort the entries')
     ap.add_argument('-o', '--output', default=None,
-                    help='generated DocBook bibliography')
+                    help='generated document')
     ap.add_argument('-p', '--link-prefix', dest='link_prefix', default='bib-',
                     help='prefix for bibliography links')
     ap.add_argument('-r', '--restructuredtext', dest='doc_type',
@@ -51,6 +51,8 @@ if __name__ == '__main__':
                     help='path or name of citation style')
     ap.add_argument('-t', '--citation-separator', dest='cit_sep', default=';',
                     help='citation separator for multi-citing')
+    ap.add_argument('-w', '--writer', dest='writer', default='html',
+                    help='writer for reStructuredText input')
     args = ap.parse_args()
 
     # Search for the database
@@ -98,11 +100,16 @@ if __name__ == '__main__':
 
     # Process a reStructuredText document
     if args.doc_type == 'rst':
+        # Set the writer
+        kwds = {'writer_name': args.writer}
+        if args.writer == 'docbook':
+            import bibgen.writers.docbook
+            kwds['writer'] = bibgen.writers.docbook.Writer()
+        
         import bibgen.rst
         bibgen.rst.register()
         txt = bibgen.rst.process_file(open(doc_path).read(), biblio,
-                                      source_path=doc_path,
-                                      writer_name='html')
+                                      source_path=doc_path, **kwds)
         out.write(txt.decode('utf-8'))
     # Process a DocBook document
     elif args.doc_type == 'docbook':
