@@ -175,7 +175,6 @@ class BibliographyTransform(docutils.transforms.Transform):
         nodes = []
         for (itm,bibitem) in bib_entries:
             text = re.sub('\n', ' ', ''.join(bibitem))
-            print(text)
             doc_item = parse_fragment(self.document.settings, text)
 
             entry_node = docutils.nodes.paragraph('', classes=['bibentry'],
