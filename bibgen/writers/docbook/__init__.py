@@ -33,7 +33,7 @@ class DocBookTranslator(OllieTranslator):
         pass
 
     def depart_container(self, node):
-        pass
+        self.body.append('\n')
         
     def visit_math_block(self, node):
         self.body.append('<equation>\n')

@@ -179,7 +179,7 @@ class BibliographyTransform(docutils.transforms.Transform):
 
             entry_node = docutils.nodes.paragraph('', classes=['bibentry'],
                                                   ids=[link_format(itm.key)])
-            for child in doc_item.children:
+            for child in doc_item.children[0].children:
                 entry_node.setup_child(child)
                 entry_node += child
 
