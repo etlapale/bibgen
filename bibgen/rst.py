@@ -259,7 +259,14 @@ class BibliographyDirective(docutils.parsers.rst.Directive):
         self.state.document.note_pending(pending)
         
         # The bibliography will be filled after the cite transforms
-        node = docutils.nodes.container(classes=['bibliography'])
+        node = docutils.nodes.section(classes=['bibliography'],
+                                      names=['bibliography'],
+                                      ids=['bibliography'])
+
+        title = docutils.nodes.title('', 'Bibliography')
+        node.setup_child(title)
+        node += title
+        
         node.setup_child(pending)
         node += pending
 

@@ -41,6 +41,18 @@ class DocBookTranslator(OllieTranslator):
     def depart_math_block(self, node):
         self.body.append('</equation>\n')
 
+    def visit_section(self, node):
+        if 'bibliography' in node.get('classes'):
+            self.body.append('\n<bibliography>\n')
+        else:
+            return OllieTranslator.visit_section(self, node)
+        
+    def depart_section(self, node):
+        if 'bibliography' in node.get('classes'):
+            self.body.append('</bibliography>\n')
+        else:
+            return OllieTranslator.depart_section(self, node)
+        
     def visit_paragraph(self, node):
         # Cooked bibliography entry
         if 'bibentry' in node.get('classes'):
