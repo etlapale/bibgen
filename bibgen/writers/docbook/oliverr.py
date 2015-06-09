@@ -816,7 +816,7 @@ class DocBookTranslator(nodes.NodeVisitor):
 
     def depart_paragraph(self, node):
         self.body.append('</para>')
-
+        
     # TODO: problematic
     visit_problematic = depart_problematic = lambda self, node: None
 
